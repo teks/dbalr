@@ -12,7 +12,8 @@ each cell can be one of:
 * empty
 
 effects of room size:
-* larger rooms delay onset of melee more (enemies need time to reach you)
+* larger rooms delay onset of melee more (enemies need time to reach you):
+    * small, medium, large => 1, 2, 3 turns
 * larger rooms may have more spawns (check rogue source):
     * monsters
     * items

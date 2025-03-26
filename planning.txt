@@ -1,0 +1,9 @@
+Iteration 1
+[ ] 
+
+Backlog
+[ ] I can't make `cargo test` execute floor.rs tests unless lib.rs or main.rs
+is importing this file.  Something I haven't tried yet is making floor.rs, its
+own 'target' in Cargo.toml, because cargo seems to consider only target files
+and things linked from them (main & lib are automatically targets evidently).
+
