@@ -4,6 +4,7 @@
 #![allow(dead_code)] // not everything is implemented perfectly right away, rust, geez
 
 use std::collections::HashSet;
+use std::collections::HashMap;
 
 enum CellType {
     SmallRoom,
@@ -38,8 +39,25 @@ impl CellLocation {
     }
 }
 
-struct Floor {
+struct Cell {
+    cell_type: CellType, // TODO enum or subclass? (TODO can structs be 'subclassed?')
+    /* TODO possible contents:
+        @: 0 or 1
+        monsters: 0+
+        treasures/items: 0+
+        stairs up:   0 or 1
+        stairs down: 0 or 1
+    */
+    // TODO OR should I put the contents in the floor object then give each obj a CellLocation instead?
+}
 
+struct Floor {
+    level: u8, // in rogue, AMULETLEVEL is 26 so 255 levels is plenty
+    /* TODO checking for cells:
+    [ ] always 9 Cells
+    [ ] keyed by 1 of each CellLocation
+    */
+    cells: HashMap<CellLocation, Cell>,
 }
 
 #[cfg(test)]
