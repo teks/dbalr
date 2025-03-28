@@ -37,10 +37,14 @@ TODO NEXT!
 */
 
 #![allow(dead_code)] // not everything is implemented perfectly right away, rust, geez
+#![allow(unused_variables)]
 
 use std::collections::HashSet;
 use std::collections::HashMap;
 
+// enums can't be compared using `==` and `!=` unless you add PartialEq,
+// however somehow they can be pattern-matched.
+#[derive(Debug, PartialEq)]
 enum CellType {
     SmallRoom,
     MediumRoom,
@@ -75,15 +79,35 @@ impl CellLocation {
 }
 
 struct Cell {
-    cell_type: CellType, // TODO enum or subclass? (TODO can structs be 'subclassed?')
+    cell_type: CellType, // TODO now leaning towards Cell being an enum-with-data
+    lit: bool,
     /* TODO possible contents:
         @: 0 or 1
         monsters: 0+
         treasures/items: 0+
         stairs up:   0 or 1
         stairs down: 0 or 1
+        passageways/connections? <-- TODO
     */
     // TODO OR should I put the contents in the floor object then give each obj a CellLocation instead?
+}
+
+impl Cell {
+    // pass in die roll function for ease of testing:
+    fn new(level: u8, dieroll_fn: fn(u8) -> u8) -> Cell {
+        let cell = Cell {
+            lit: false, // TODO p(room is dark) = p(roll(0,9) < dungeon_level - 1)
+            // TODO if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
+            // even chance it's a small, medium, or large room
+            cell_type: match dieroll_fn(3) {
+                1 => CellType::SmallRoom,
+                2 => CellType::MediumRoom,
+                3 => CellType::LargeRoom,
+                _ => panic!("Unreachable _ clause in match"), // rust can't tell the die roll is exhaustive
+            },
+        };
+        cell
+    }
 }
 
 struct Floor {
@@ -111,6 +135,13 @@ mod tests {
 
         let s_neighbors = CellLocation::S.neighbors();
         assert_eq!(s_neighbors, HashSet::from([CellLocation::SW, CellLocation::C, CellLocation::SE]));
+    }
+
+    #[test]
+    fn test_Cell_new() {
+        fn deterministic_die_fn(sides: u8) -> u8 { 1 }
+        let c = Cell::new(255, deterministic_die_fn);
+        assert_eq!(c.cell_type, CellType::SmallRoom);
     }
 
 }
