@@ -1,4 +1,39 @@
-/* Floor objects have 9 cells in a 3 x 3 grid.
+/*
+
+Most of rogue's randomness seems to be even flat probabilities, ie rnd(10) is 1d10 - 1.
+
+Floor Generation in Rogue
+=========================
+a new floor is done via new_level.c::new_level(). It generates everything from
+the room layout to the gold and monster generation. In particular new_level() calls:
+    * rooms.c::do_rooms(): rooms, gold, and monsters
+    * do_passages()
+    * there's no_food++ for some reason
+    * new_level.c::put_things()
+
+0 to 3 cells, chosen randomly, have no rooms ("ISGONE"; also empty cells may have passages?)
+
+Room Generation - rooms.c::do_rooms():
+---------------
+rooms each go in one of 9 cells in a 3 x 3 grid.
+room max size is 8 rows x 26 cols
+up to 12 exits for some reason
+
+setting room type:
+    p(room is dark) = p(roll(0,9) < dungeon_level - 1)
+    if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
+
+mazes are about maximum size, ie cell size
+non-maze rooms have minimum size about 4x4, max size is near the cell size
+    so 4x4 (16 squares) to about 8x26 (208 squares)
+    split into 3 categories:
+    (16, 80), (81, 145), (146, 210)
+    4x4 - 8x10
+    SO even small 
+
+Passage Generation
+------------------
+TODO NEXT!
 */
 
 #![allow(dead_code)] // not everything is implemented perfectly right away, rust, geez

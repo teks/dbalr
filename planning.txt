@@ -1,5 +1,14 @@
 Iteration 1
-[ ] 
+[ ] how do I de-randomize for testing purposes? dependency injection?
+[ ] 0 to 3 cells, chosen randomly, have no rooms ("ISGONE"; also empty cells may have passages?)
+[ ] room generation
+    [ ] set room type: small, medium, large, maze
+    [ ] set room lighting: light, dark (mazes are always dark)
+[ ] passage generation
+
+Iteration 2
+[ ] room filling: gold & monster generation in do_rooms() and maybe put_things()
+[ ] where is the stairwell put?
 
 Backlog
 [ ] I can't make `cargo test` execute floor.rs tests unless lib.rs or main.rs
