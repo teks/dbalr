@@ -29,7 +29,6 @@ non-maze rooms have minimum size about 4x4, max size is near the cell size
     split into 3 categories:
     (16, 80), (81, 145), (146, 210)
     4x4 - 8x10
-    SO even small 
 
 Passage Generation
 ------------------
@@ -67,23 +66,39 @@ impl CellLocation {
     }
 }
 
-#[derive(Debug, PartialEq)]
-struct Room { // holds the data for a room regardless of room size
-    lit: bool,
-    /* TODO possible contents:
-        @: 0 or 1
-        monsters: 0+
-        treasures/items: 0+
-        stairs up:   0 or 1
-        stairs down: 0 or 1
-        passageways/connections? <-- TODO
-    */
+// Monster and Item are temporary placeholders; will be moved/implemented later
+#[derive(Debug)]
+struct Monster {}
 
+#[derive(Debug)]
+struct Item {}
+
+// holds the data for a room regardless of room size.
+// Passageways/connections are managed in the Floor object.
+#[derive(Debug)]
+struct Room {
+    lit: bool,
+    monsters: Vec<Monster>,
+    items: Vec<Item>,
+    stairs_up: bool,
+    stairs_down: bool,
+}
+
+impl Room {
+    fn new(lit: bool) -> Room {
+        Room {
+            lit,
+            monsters: Vec::new(), // Vec::new() seems to infer that it should return a Vec<Monster>
+            items: Vec::new(),
+            stairs_up: false,
+            stairs_down: false,
+        }
+    }
 }
 
 // enums can't be compared using `==` and `!=` unless you add PartialEq,
 // however somehow they can be pattern-matched.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum Cell {
     SmallRoom(Room),
     MediumRoom(Room),
@@ -92,25 +107,40 @@ enum Cell {
     Empty
 }
 
-impl Cell {
-    // pass in die roll function for ease of testing:
-    fn new(level: u8, dieroll_fn: fn(u8) -> u8) -> Cell {
-        match dieroll_fn(3) {
-            // TODO lit: false, // TODO p(room is dark) = p(roll(0,9) < dungeon_level - 1)
+type DieRoller = fn() -> u8; // "A DieRoller is a function that returns a u8 integer"
 
-            // even chance it's a small, medium, or large room
-            1 => Cell::SmallRoom( Room {lit: true}),
-            2 => Cell::MediumRoom(Room {lit: true}),
-            3 => Cell::LargeRoom( Room {lit: true}),
-            // TODO maze: if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
-            // TODO empty: 0 - 3 empty cells in each dungeon level
-            _ => panic!("Unreachable _ clause in match"), // rust can't tell the die roll is exhaustive
-        }
+// p(room is dark) = p(roll(0,9) < dungeon_level - 1)
+fn is_lit(dungeon_level: u8, lighting_d10: DieRoller) -> bool {
+    lighting_d10() >= dungeon_level
+}
+
+// if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
+fn is_maze(maze_d15: DieRoller) -> bool {
+    maze_d15() == 15
+}
+
+impl Cell {
+    // pass in die roll functions for ease of testing:
+    fn new_room(dungeon_level: u8, size_d3: DieRoller, lighting_d10: DieRoller) -> Cell {
+        let lit = is_lit(dungeon_level, lighting_d10);
+        // even chance it's a small, medium, or large room
+        let room = match size_d3() {
+            1 => Cell::SmallRoom,
+            2 => Cell::MediumRoom,
+            3 => Cell::LargeRoom,
+            _ => panic!("Unreachable _ stanza reached"), // rust can't tell the die roll is exhaustive
+        };
+        room(Room::new(lit))
     }
+
+    // fn new_cell(dungeon_level: u8, size_d3: DieRoller, lighting_d10: DieRoller) -> Cell {
+    // }
 }
 
 struct Floor {
+    // TODO empty: 0 - 3 empty cells in each dungeon level
     level: u8, // in rogue, AMULETLEVEL is 26 so 255 levels is plenty
+    hero_cell: CellLocation,
     /* TODO checking for cells:
     [ ] always 9 Cells
     [ ] keyed by 1 of each CellLocation
@@ -138,9 +168,14 @@ mod tests {
 
     #[test]
     fn test_Cell_new() {
-        fn deterministic_die_fn(sides: u8) -> u8 { 1 }
-        let c: Cell = Cell::new(255, deterministic_die_fn);
-        // assert_matches is apparently unstable
-        assert!(matches!(c, Cell::SmallRoom(_)));
+        fn deterministic_die_fn() -> u8 { 1 }
+        let c: Cell = Cell::new_room(1, deterministic_die_fn, deterministic_die_fn);
+        // assert_matches is evidently unstable // assert!(matches!(c, Cell::SmallRoom(_)));
+        // apparently the only ways to extract data from an enum variant is `match` and `if let`
+        let lit = match c {
+            Cell::SmallRoom(room) => room.lit,
+            _ => panic!("Expected Cell::SmallRoom, got {:?}", c),
+        };
+        assert!(lit);
     }
 }
