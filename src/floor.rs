@@ -42,17 +42,6 @@ TODO NEXT!
 use std::collections::HashSet;
 use std::collections::HashMap;
 
-// enums can't be compared using `==` and `!=` unless you add PartialEq,
-// however somehow they can be pattern-matched.
-#[derive(Debug, PartialEq)]
-enum CellType {
-    SmallRoom,
-    MediumRoom,
-    LargeRoom,
-    Maze,
-    Empty
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)] // without this line, CellLocations can't be HashMap keys
 enum CellLocation {
     NW, N, NE,
@@ -78,8 +67,8 @@ impl CellLocation {
     }
 }
 
-struct Cell {
-    cell_type: CellType, // TODO now leaning towards Cell being an enum-with-data
+#[derive(Debug, PartialEq)]
+struct Room { // holds the data for a room regardless of room size
     lit: bool,
     /* TODO possible contents:
         @: 0 or 1
@@ -89,24 +78,34 @@ struct Cell {
         stairs down: 0 or 1
         passageways/connections? <-- TODO
     */
-    // TODO OR should I put the contents in the floor object then give each obj a CellLocation instead?
+
+}
+
+// enums can't be compared using `==` and `!=` unless you add PartialEq,
+// however somehow they can be pattern-matched.
+#[derive(Debug, PartialEq)]
+enum Cell {
+    SmallRoom(Room),
+    MediumRoom(Room),
+    LargeRoom(Room),
+    Maze,
+    Empty
 }
 
 impl Cell {
     // pass in die roll function for ease of testing:
     fn new(level: u8, dieroll_fn: fn(u8) -> u8) -> Cell {
-        let cell = Cell {
-            lit: false, // TODO p(room is dark) = p(roll(0,9) < dungeon_level - 1)
-            // TODO if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
+        match dieroll_fn(3) {
+            // TODO lit: false, // TODO p(room is dark) = p(roll(0,9) < dungeon_level - 1)
+
             // even chance it's a small, medium, or large room
-            cell_type: match dieroll_fn(3) {
-                1 => CellType::SmallRoom,
-                2 => CellType::MediumRoom,
-                3 => CellType::LargeRoom,
-                _ => panic!("Unreachable _ clause in match"), // rust can't tell the die roll is exhaustive
-            },
-        };
-        cell
+            1 => Cell::SmallRoom( Room {lit: true}),
+            2 => Cell::MediumRoom(Room {lit: true}),
+            3 => Cell::LargeRoom( Room {lit: true}),
+            // TODO maze: if a room is dark it may be a maze; p(dark room is a maze) = 1 in 15
+            // TODO empty: 0 - 3 empty cells in each dungeon level
+            _ => panic!("Unreachable _ clause in match"), // rust can't tell the die roll is exhaustive
+        }
     }
 }
 
@@ -140,8 +139,8 @@ mod tests {
     #[test]
     fn test_Cell_new() {
         fn deterministic_die_fn(sides: u8) -> u8 { 1 }
-        let c = Cell::new(255, deterministic_die_fn);
-        assert_eq!(c.cell_type, CellType::SmallRoom);
+        let c: Cell = Cell::new(255, deterministic_die_fn);
+        // assert_matches is apparently unstable
+        assert!(matches!(c, Cell::SmallRoom(_)));
     }
-
 }
