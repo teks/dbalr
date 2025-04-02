@@ -107,6 +107,7 @@ enum Cell {
     Empty
 }
 
+// pass in die roll functions for ease of testing
 type DieRoller = fn() -> u8; // "A DieRoller is a function that returns a u8 integer"
 
 // p(room is dark) = p(roll(0,9) < dungeon_level - 1)
@@ -120,9 +121,7 @@ fn is_maze(maze_d15: DieRoller) -> bool {
 }
 
 impl Cell {
-    // pass in die roll functions for ease of testing:
-    fn new_room(dungeon_level: u8, size_d3: DieRoller, lighting_d10: DieRoller) -> Cell {
-        let lit = is_lit(dungeon_level, lighting_d10);
+    fn new_room(lit: bool, dungeon_level: u8, size_d3: DieRoller) -> Cell {
         // even chance it's a small, medium, or large room
         let room = match size_d3() {
             1 => Cell::SmallRoom,
@@ -133,8 +132,20 @@ impl Cell {
         room(Room::new(lit))
     }
 
-    // fn new_cell(dungeon_level: u8, size_d3: DieRoller, lighting_d10: DieRoller) -> Cell {
-    // }
+    // TODO write test_Cell_new
+    // TODO write test_Cell_new
+    // TODO write test_Cell_new
+    // TODO write test_Cell_new
+    fn new(dungeon_level: u8,
+        lighting_d10: DieRoller,
+        is_maze_d15: DieRoller,
+        room_size_d3: DieRoller,
+    ) -> Cell {
+        let is_lit = is_lit(dungeon_level, lighting_d10);
+        let is_maze = !is_lit && is_maze(is_maze_d15);
+        if is_maze { Cell::Maze }
+        else { Cell::new_room(is_lit, dungeon_level, room_size_d3) }
+    }
 }
 
 struct Floor {
@@ -167,9 +178,9 @@ mod tests {
     }
 
     #[test]
-    fn test_Cell_new() {
+    fn test_Cell_new_room() {
         fn deterministic_die_fn() -> u8 { 1 }
-        let c: Cell = Cell::new_room(1, deterministic_die_fn, deterministic_die_fn);
+        let c: Cell = Cell::new_room(true, 1, deterministic_die_fn);
         // assert_matches is evidently unstable // assert!(matches!(c, Cell::SmallRoom(_)));
         // apparently the only ways to extract data from an enum variant is `match` and `if let`
         let lit = match c {
