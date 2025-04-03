@@ -132,14 +132,8 @@ impl Cell {
         room(Room::new(lit))
     }
 
-    // TODO write test_Cell_new
-    // TODO write test_Cell_new
-    // TODO write test_Cell_new
-    // TODO write test_Cell_new
     fn new(dungeon_level: u8,
-        lighting_d10: DieRoller,
-        is_maze_d15: DieRoller,
-        room_size_d3: DieRoller,
+        lighting_d10: DieRoller, is_maze_d15: DieRoller, room_size_d3: DieRoller,
     ) -> Cell {
         let is_lit = is_lit(dungeon_level, lighting_d10);
         let is_maze = !is_lit && is_maze(is_maze_d15);
@@ -188,5 +182,30 @@ mod tests {
             _ => panic!("Expected Cell::SmallRoom, got {:?}", c),
         };
         assert!(lit);
+    }
+
+    #[test]
+    fn test_Cell_new() {
+        let dungeon_level = 5;
+        fn three() -> u8 { 3 }
+        fn seven() -> u8 { 7 }
+        fn fifteen() -> u8 { 15 }
+
+        // It'd be better test these independently, more like parametrizing a
+        // test in pytest; unsure how best to do that in rust
+
+        // lit room: d10 >= dungeon lvl
+        let c = Cell::new(dungeon_level, seven, fifteen, three);
+        if let Cell::LargeRoom(r) = c { assert!(r.lit) }
+        else { panic!("Expected LargeRoom, got {:?}", c) }
+
+        // dark room: d10 < dungeon lvl && d15 != 15
+        let c = Cell::new(dungeon_level, three, seven, three);
+        if let Cell::LargeRoom(r) = c { assert!(!r.lit) }
+        else { panic!("Expected LargeRoom, got {:?}", c) }
+
+        // dark maze (all mazes are dark): d10 < dungeon lvl && d15 == 15
+        let c = Cell::new(dungeon_level, three, fifteen, three);
+        assert!(matches!(c, Cell::Maze));
     }
 }
