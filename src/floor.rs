@@ -49,6 +49,18 @@ enum CellLocation {
 }
 
 impl CellLocation {
+    // rust can't iterate over an enum's variants without a crate, so have to
+    // resort to this brittle foolishness instead
+    fn all() -> [CellLocation; 9] {
+        use CellLocation::*;
+        // formatting isn't so great because vscode can't format a selection
+        [
+            NW, N, NE,
+            W,  C, E,
+            SW, S, SE,
+        ]
+    }
+
     fn neighbors(&self) -> HashSet<CellLocation> {
         use CellLocation::*;
         match self {
@@ -110,6 +122,9 @@ enum Cell {
 // pass in die roll functions for ease of testing
 type DieRoller = fn() -> u8; // "A DieRoller is a function that returns a u8 integer"
 
+// From the cell locations, return N chosen at random, non-repeating
+type RandomCellLocations = fn(u8) -> Vec<CellLocation>;
+
 // p(room is dark) = p(roll(0,9) < dungeon_level - 1)
 fn is_lit(dungeon_level: u8, lighting_d10: DieRoller) -> bool {
     lighting_d10() >= dungeon_level
@@ -119,6 +134,13 @@ fn is_lit(dungeon_level: u8, lighting_d10: DieRoller) -> bool {
 fn is_maze(maze_d15: DieRoller) -> bool {
     maze_d15() == 15
 }
+
+/* TODO soonish going to have to pull the trigger on RNG
+fn random_empty_cells() -> Vec<CellLocation> {
+    let empty_cell_count = empty_cells_d4() - 1; // 0 - 3 empty cells in each dungeon level
+    let all_loc = CellLocation::all();
+}
+*/
 
 impl Cell {
     fn new_room(lit: bool, dungeon_level: u8, size_d3: DieRoller) -> Cell {
@@ -143,14 +165,27 @@ impl Cell {
 }
 
 struct Floor {
-    // TODO empty: 0 - 3 empty cells in each dungeon level
     level: u8, // in rogue, AMULETLEVEL is 26 so 255 levels is plenty
-    hero_cell: CellLocation,
+    // hero_cell: CellLocation, // TODO the hero may not be on this floor;
+    //      maybe a good time to use a rustism like an Option or such
     /* TODO checking for cells:
     [ ] always 9 Cells
     [ ] keyed by 1 of each CellLocation
     */
     cells: HashMap<CellLocation, Cell>,
+}
+
+impl Floor {
+    // TODO add RandomCellLocations:
+    fn new(level: u8, empty_cell_picker: RandomCellLocations) -> Floor {
+        let cells: HashMap<CellLocation, Cell> = HashMap::new();
+
+        // randomly generate the non-empty cells
+        // for _ in remaining_cell_locations {
+        // }
+
+        Floor { level, cells, }
+    }
 }
 
 #[cfg(test)]
@@ -207,5 +242,20 @@ mod tests {
         // dark maze (all mazes are dark): d10 < dungeon lvl && d15 == 15
         let c = Cell::new(dungeon_level, three, fifteen, three);
         assert!(matches!(c, Cell::Maze));
+    }
+
+    #[test]
+    fn test_Floor_new() {
+        use super::*;
+        fn deterministic_cell_locations(qty: u8) -> Vec<CellLocation> {
+            Vec::from([CellLocation::C, CellLocation::NE])
+        }
+        // for now just testing my ability to spell out function signatures as types:
+        fn RCL_user(picker: RandomCellLocations) -> Vec<CellLocation> {
+            picker(99)
+        }
+        let output = RCL_user(deterministic_cell_locations);
+        let expected = Vec::from([CellLocation::C, CellLocation::NE]);
+        assert_eq!(output, expected);
     }
 }
