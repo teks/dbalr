@@ -1,7 +1,4 @@
 /*
-
-Most of rogue's randomness seems to be even flat probabilities, ie rnd(10) is 1d10 - 1.
-
 Floor Generation in Rogue
 =========================
 a new floor is done via new_level.c::new_level(). It generates everything from
@@ -37,7 +34,9 @@ TODO NEXT!
 
 #![allow(dead_code)] // not everything is implemented perfectly right away, rust, geez
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
+use crate::random;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
@@ -135,10 +134,12 @@ fn is_maze(maze_d15: DieRoller) -> bool {
     maze_d15() == 15
 }
 
-/* TODO soonish going to have to pull the trigger on RNG
+/*
 fn random_empty_cells() -> Vec<CellLocation> {
-    let empty_cell_count = empty_cells_d4() - 1; // 0 - 3 empty cells in each dungeon level
-    let all_loc = CellLocation::all();
+    use rand::prelude::*;
+    let mut rng = rand::rng();
+    let empty_cell_count = d4() - 1; // 0 - 3 empty cells in each dungeon level
+    let all_loc = Vec::from(CellLocation::all());
 }
 */
 
