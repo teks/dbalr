@@ -177,13 +177,28 @@ struct Floor {
 }
 
 impl Floor {
-    // TODO add RandomCellLocations:
-    fn new(level: u8, empty_cell_picker: RandomCellLocations) -> Floor {
-        let cells: HashMap<CellLocation, Cell> = HashMap::new();
+    fn new(level: u8, empty_cell_count_d4: DieRoller) -> Floor {
+        let mut cells: HashMap<CellLocation, Cell> = HashMap::new();
+        let mut candidate_locations = Vec::from(CellLocation::all());
 
-        // randomly generate the non-empty cells
-        // for _ in remaining_cell_locations {
-        // }
+        // randomly pick the empty cells
+        let empty_cnt = empty_cell_count_d4() - 1;
+        for i in 0..empty_cnt {
+            let l = candidate_locations.len();
+            let empty_location= candidate_locations.remove(rand::random_range(0..l));
+            // print!("Empty cell #{}: {:?}\n", i, empty_location);
+            cells.insert(empty_location, Cell::Empty);
+        }
+
+        // generate the non-empty cells
+        for location in candidate_locations {
+            let cell = Cell::new(level,
+                || random::roll_die(1, 10),
+                || random::roll_die(1, 15),
+                || random::roll_die(1, 3), );
+            // print!("Non-empty location: {:?} {:?}\n", location, cell);
+            cells.insert(location, cell);
+        }
 
         Floor { level, cells, }
     }
@@ -248,15 +263,17 @@ mod tests {
     #[test]
     fn test_Floor_new() {
         use super::*;
-        fn deterministic_cell_locations(qty: u8) -> Vec<CellLocation> {
-            Vec::from([CellLocation::C, CellLocation::NE])
+        fn three() -> u8 { 3 }
+        let floor = Floor::new(13, three);
+        assert_eq!(floor.level, 13);
+        assert_eq!(floor.cells.len(), 9);
+        let mut empty_cnt = 0;
+        for (location, cell) in floor.cells {
+            match cell {
+                Cell::Empty => empty_cnt += 1,
+                _ => (),
+            }
         }
-        // for now just testing my ability to spell out function signatures as types:
-        fn RCL_user(picker: RandomCellLocations) -> Vec<CellLocation> {
-            picker(99)
-        }
-        let output = RCL_user(deterministic_cell_locations);
-        let expected = Vec::from([CellLocation::C, CellLocation::NE]);
-        assert_eq!(output, expected);
+        assert_eq!(empty_cnt, 2);
     }
 }

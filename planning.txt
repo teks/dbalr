@@ -1,6 +1,6 @@
 Iteration 1
 [v] how do I de-randomize for testing purposes? dependency injection?
-[ ] 0 to 3 cells, chosen randomly, have no rooms ("ISGONE"; also empty cells may have passages?)
+[v] 0 to 3 cells, chosen randomly, have no rooms ("ISGONE"; also empty cells may have passages?)
 [v] room generation
     [v] set room type: small, medium, large, maze
     [v] set room lighting: light, dark (mazes are always dark)
