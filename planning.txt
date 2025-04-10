@@ -4,9 +4,12 @@ Iteration 1
 [v] room generation
     [v] set room type: small, medium, large, maze
     [v] set room lighting: light, dark (mazes are always dark)
-[ ] passage generation
+[ ] passage generation - see do-passages-algorithm.txt in rogue src/
+    [ ] randomly connect all the cells
+    [ ] random(0 to 4) extra connections: 1) pick a cell, 2) try to find a new connection to make
 
 Iteration 2
+[ ] secret doors and secret passages; see passages.c::putpass() and door()
 [ ] room filling: gold & monster generation in do_rooms() and maybe put_things()
 [ ] where is the stairwell put?
 
@@ -15,4 +18,3 @@ Backlog
 is importing this file.  Something I haven't tried yet is making floor.rs, its
 own 'target' in Cargo.toml, because cargo seems to consider only target files
 and things linked from them (main & lib are automatically targets evidently).
-
