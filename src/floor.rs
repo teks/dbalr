@@ -58,7 +58,8 @@ use crate::random;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Eq, Hash)] // without this line, CellLocations can't be HashMap keys
+// Make an enum in rust actually useful, eg be HashMap & HashSet keys
+#[derive(Debug, PartialOrd, PartialEq, Eq, Hash)]
 enum CellLocation {
     NW, N, NE,
     W,  C, E,
@@ -192,9 +193,33 @@ struct Floor {
     [ ] keyed by 1 of each CellLocation
     */
     cells: HashMap<CellLocation, Cell>,
+    passages: HashSet<(CellLocation, CellLocation)>,
 }
 
 impl Floor {
+    /// For consistent hashing, always orders the locations (greater, lesser).
+    fn passage_order(a: CellLocation, b: CellLocation) -> (CellLocation, CellLocation) {
+        if      a > b { (a, b) }
+        else if a < b { (b, a) }
+        else          { panic!("Passages cannot begin and end in the same cell.") }
+    }
+
+    /// Connect the two given cells with a passage.
+    fn connect(&mut self, a: CellLocation, b: CellLocation) {
+        if !a.neighbors().contains(&b) {
+            panic!("{:?} are not neighbors; invalid passage", (a, b));
+        }
+        let passage = Self::passage_order(a, b);
+        if self.passages.contains(&passage) {
+            panic!("Floor already has passage {:?}", passage);
+        }
+        self.passages.insert(passage);
+    }
+
+    fn do_passages() -> HashSet<(CellLocation, CellLocation)> {
+        HashSet::<(CellLocation, CellLocation)>::new()
+    }
+
     fn new(level: u8, empty_cell_count_d4: DieRoller) -> Floor {
         let mut cells: HashMap<CellLocation, Cell> = HashMap::new();
         let mut candidate_locations = Vec::from(CellLocation::all());
@@ -218,8 +243,9 @@ impl Floor {
             cells.insert(location, cell);
         }
 
-        Floor { level, cells, }
+        Floor { level, cells, passages: Self::do_passages(), }
     }
+
 }
 
 #[cfg(test)]
@@ -228,7 +254,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_CellLocation_neighbors() {
+    fn CellLocation_neighbors() {
         // test a few cases:
         let nw_neighbors = CellLocation::NW.neighbors();
         assert_eq!(nw_neighbors, HashSet::from([CellLocation::N, CellLocation::W]));
@@ -241,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn test_Cell_new_room() {
+    fn Cell_new_room() {
         fn deterministic_die_fn() -> u8 { 1 }
         let c: Cell = Cell::new_room(true, 1, deterministic_die_fn);
         // assert_matches is evidently unstable // assert!(matches!(c, Cell::SmallRoom(_)));
@@ -254,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_Cell_new() {
+    fn Cell_new() {
         let dungeon_level = 5;
         fn three() -> u8 { 3 }
         fn seven() -> u8 { 7 }
@@ -279,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_Floor_new() {
+    fn Floor_new() {
         use super::*;
         fn three() -> u8 { 3 }
         let floor = Floor::new(13, three);
@@ -293,5 +319,44 @@ mod tests {
             }
         }
         assert_eq!(empty_cnt, 2);
+    }
+
+    #[test]
+    fn Floor_passage_order() {
+        let po_tuple = Floor::passage_order(CellLocation::NW, CellLocation::C);
+        assert_eq!((CellLocation::C, CellLocation::NW), po_tuple);
+        let po_tuple = Floor::passage_order(CellLocation::S, CellLocation::SW);
+        assert_eq!((CellLocation::S, CellLocation::SW), po_tuple);
+    }
+
+    #[test]
+    #[should_panic]
+    fn Floor_passage_order_panic() {
+        Floor::passage_order(CellLocation::C, CellLocation::C);
+    }
+
+    #[test]
+    fn Floor_connect() {
+        let mut floor = Floor::new(2, || 3);
+        floor.connect(CellLocation::N, CellLocation::NW);
+        floor.connect(CellLocation::SE, CellLocation::S);
+        assert_eq!(floor.passages.len(), 2);
+    }
+
+    /// Floor::connect should panic when two cells are already connected
+    #[test]
+    #[should_panic]
+    fn Floor_connect_dupe_panic() {
+        let mut floor = Floor::new(2, || 3);
+        floor.connect(CellLocation::C, CellLocation::S);
+        floor.connect(CellLocation::C, CellLocation::S);
+    }
+
+    /// Floor::connect should panic when the two cells are not adjacent
+    #[test]
+    #[should_panic]
+    fn Floor_connect_nonadjacent_panic() {
+        let mut floor = Floor::new(2, || 3);
+        floor.connect(CellLocation::E, CellLocation::W);
     }
 }
