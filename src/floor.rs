@@ -28,28 +28,6 @@ non-maze rooms have minimum size about 4x4, max size is near the cell size
     4x4 - 8x10
 */
 
-/*
-Passage Generation - passages.c::do_passages()
-------------------
-Each adjacency between cells can have zero or one corridors. This includes empty
-cells: They each have a terminus point for corridors. This lets corridors headed
-for an empty cell connect to each other at the terminus. That way one can walk
-from a room, through an empty cell, to another room.
-
-The graph of cell corridors is random but always complete; one can reach any
-cell from any other cell. Randomly a few extra corridors are added so that there
-can be loops.
-
-The algorithm to build the initial graph is basically to pick a starting cell,
-then drunkard's walk around the cells until they're all reachable.
-
-Then, to add extra corridors, loop (roll_die(0, 4) times:
-    1. pick a random cell
-    2. find a random adjacent room that isn't already connected
-    3. connect the two cells
-
-*/
-
 #![allow(dead_code)] // not everything is implemented perfectly right away, rust, geez
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -216,8 +194,27 @@ impl Floor {
         self.passages.insert(passage);
     }
 
+    /// Passage Generation - passages.c::do_passages()
     fn do_passages() -> HashSet<(CellLocation, CellLocation)> {
-        HashSet::<(CellLocation, CellLocation)>::new()
+        let mut passages = HashSet::<(CellLocation, CellLocation)>::new();
+        // The graph of random corridors is always complete; one can reach any cell
+        // from any other cell (but some doors are hidden). Randomly a few extra
+        // corridors are added so that there can be loops.
+
+        // Two adjacent cells can have only zero or one corridor between them.
+
+        // Any corridors going into an empty cell will connect to each other.
+        // That way one can walk from a room, through an empty cell, to another room.
+        // If only one corridor enters an empty cell, however, it is a dead end.
+
+        // The algorithm to build the initial graph is basically to pick a starting cell,
+        // then drunkard's walk around the cells until they're all reachable.
+
+        // Then, to add extra corridors, loop (roll_die(0, 4) times:
+        //     1. pick a random cell
+        //     2. find a random adjacent room that isn't already connected
+        //     3. connect the two cells
+        passages
     }
 
     fn new(level: u8, empty_cell_count_d4: DieRoller) -> Floor {
