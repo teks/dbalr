@@ -16,3 +16,34 @@ is importing this file.  Something I haven't tried yet is making floor.rs, its
 own 'target' in Cargo.toml, because cargo seems to consider only target files
 and things linked from them (main & lib are automatically targets evidently).
 
+
+random passage generation - I think I got it
+=========================
+
+let unused_cells = HashSet::from(CellLocation::all());
+let graph = HashSet<CellLocation>::new();
+
+/// needed functions
+fn random_pop(collection) -> CellLocation { /* removes and returns a random CL */ }
+fn random_pick(collection) -> CellLocation { /* random CL from the given collection */ }
+fn random_unconnected(collection) -> Option<CellLocation> { /* random CL from the given collection */ }
+fn add_passage(start, finish) { /* add the passage to self.passages */ }
+
+let current_cell = random_pop(unused_cells);
+graph.insert(current_cell);
+
+loop {
+    match random_unconnected(current_cell.neighbors()) {
+        Some(destination) => {
+            add_passage(current_cell, destination);
+            unused_cells.remove(destination);
+            graph.insert(destination);
+            current_cell = destination; // walk around the grid until all cells are in graph
+        },
+        None => { // cell is a dead end; all its neighbors are in graph already
+            current_cell = random_pick(graph);
+        }
+    }
+
+    if unused_cells.len() < 1 { break }
+}
