@@ -188,6 +188,7 @@ impl Floor {
             panic!("{:?} are not neighbors; invalid passage", (a, b));
         }
         let passage = Self::passage_order(a, b);
+        // Two adjacent cells can have only zero or one corridor between them:
         if self.passages.contains(&passage) {
             panic!("Floor already has passage {:?}", passage);
         }
@@ -197,18 +198,32 @@ impl Floor {
     /// Passage Generation - passages.c::do_passages()
     fn do_passages() -> HashSet<(CellLocation, CellLocation)> {
         let mut passages = HashSet::<(CellLocation, CellLocation)>::new();
-        // The graph of random corridors is always complete; one can reach any cell
-        // from any other cell (but some doors are hidden). Randomly a few extra
-        // corridors are added so that there can be loops.
+        let mut unused_cells = Vec::from(CellLocation::all());
+        let mut graph: HashSet<&CellLocation> = HashSet::new();
 
-        // Two adjacent cells can have only zero or one corridor between them.
+        // prime the pump by considering a random cell to be in the graph
+        let mut current_cell = unused_cells.remove(rand::random_range(0..unused_cells.len())); 
+        graph.insert(&current_cell);
+
+        // Build the initial graph, which needs to be random but all cells reachable (even empty ones).
+        while unused_cells.len() > 0 {
+            let neighbors = current_cell.neighbors();
+            // TODO get all the neighbors that are not in the graph, and then randomly select one of them
+            // TODO if none can be selected due to all being in the graph already, pick a new current_cell and continue
+            let random_neighbor = neighbors.iter().nth(rand::random_range(0..neighbors.len())).unwrap();
+            if graph.is_superset(neighbors) { // all the neighbors are already in the graph...
+                current_cell = random_neighbor; // ...so just pick one to use as the next current_cell
+                continue;
+            }
+            graph.insert(connectee);
+
+            graph.insert(current_cell);
+            let current_cell = unused_cells.remove(rand::random_range(0..unused_cells.len())); 
+        }
 
         // Any corridors going into an empty cell will connect to each other.
         // That way one can walk from a room, through an empty cell, to another room.
         // If only one corridor enters an empty cell, however, it is a dead end.
-
-        // The algorithm to build the initial graph is basically to pick a starting cell,
-        // then drunkard's walk around the cells until they're all reachable.
 
         // Then, to add extra corridors, loop (roll_die(0, 4) times:
         //     1. pick a random cell
