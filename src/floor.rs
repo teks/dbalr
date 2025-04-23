@@ -32,12 +32,14 @@ non-maze rooms have minimum size about 4x4, max size is near the cell size
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
+use rand::seq::IteratorRandom;
+
 use crate::random;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
 // Make an enum in rust actually useful, eg be HashMap & HashSet keys
-#[derive(Debug, PartialOrd, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialOrd, PartialEq, Eq, Hash, Clone, Copy)]
 enum CellLocation {
     NW, N, NE,
     W,  C, E,
@@ -195,41 +197,48 @@ impl Floor {
         self.passages.insert(passage);
     }
 
-    /// Passage Generation - passages.c::do_passages()
-    fn do_passages() -> HashSet<(CellLocation, CellLocation)> {
-        let mut passages = HashSet::<(CellLocation, CellLocation)>::new();
-        let mut unused_cells = Vec::from(CellLocation::all());
-        let mut graph: HashSet<&CellLocation> = HashSet::new();
-
+    /// Randomly connect all nine cells.
+    /// Unsure how to write this method without adding Clone and Copy to CellLocation.
+    fn random_passage_graph(&mut self) {
+        // TODO test this method - 1) extract randomness? then 2) write some tests somehow
+        let mut graph: HashSet<CellLocation> = HashSet::new();
         // prime the pump by considering a random cell to be in the graph
-        let mut current_cell = unused_cells.remove(rand::random_range(0..unused_cells.len())); 
-        graph.insert(&current_cell);
+        let mut all_cells = Vec::from(CellLocation::all());
+        let cell_count = all_cells.len();
+        let mut current_cell = all_cells.remove(rand::random_range(0..cell_count));
+        graph.insert(current_cell);
 
         // Build the initial graph, which needs to be random but all cells reachable (even empty ones).
-        while unused_cells.len() > 0 {
-            let neighbors = current_cell.neighbors();
-            // TODO get all the neighbors that are not in the graph, and then randomly select one of them
-            // TODO if none can be selected due to all being in the graph already, pick a new current_cell and continue
-            let random_neighbor = neighbors.iter().nth(rand::random_range(0..neighbors.len())).unwrap();
-            if graph.is_superset(neighbors) { // all the neighbors are already in the graph...
-                current_cell = random_neighbor; // ...so just pick one to use as the next current_cell
-                continue;
+        while graph.len() < cell_count {
+            // get all the neighbors that are not in the graph, and then randomly select one of them
+            let neighbor_iter = current_cell.neighbors().into_iter();
+            // TODO what does rand::rng() actually do?
+            match neighbor_iter.filter(|cell| !graph.contains(cell)).choose(&mut rand::rng()) {
+                Some(destination) => {
+                    self.connect(current_cell, destination);
+                    graph.insert(destination);
+                    current_cell = destination; // walk around adding things to the graph as we go
+                },
+                None => {
+                    // if all the neighbors are in the graph already, already, pick a new current_cell and continue
+                    // (graph is garaunteed to be non-empty) -------------vvvvvvvv
+                    // TODO what does rand::rng() actually do?
+                    current_cell = *graph.iter().choose(&mut rand::rng()).unwrap();
+                },
             }
-            graph.insert(connectee);
-
-            graph.insert(current_cell);
-            let current_cell = unused_cells.remove(rand::random_range(0..unused_cells.len())); 
         }
+    }
 
-        // Any corridors going into an empty cell will connect to each other.
-        // That way one can walk from a room, through an empty cell, to another room.
-        // If only one corridor enters an empty cell, however, it is a dead end.
+    /// Passage Generation - passages.c::do_passages()
+    fn do_passages(&mut self) {
+        self.random_passage_graph();
 
+        // ============== TODO here down ===============
+        // TODO split the two halves of this method into 2 methods?
         // Then, to add extra corridors, loop (roll_die(0, 4) times:
         //     1. pick a random cell
         //     2. find a random adjacent room that isn't already connected
         //     3. connect the two cells
-        passages
     }
 
     fn new(level: u8, empty_cell_count_d4: DieRoller) -> Floor {
@@ -255,7 +264,9 @@ impl Floor {
             cells.insert(location, cell);
         }
 
-        Floor { level, cells, passages: Self::do_passages(), }
+        let mut floor = Floor { level, cells, passages: HashSet::new(), };
+        floor.do_passages();
+        floor
     }
 
 }
@@ -350,6 +361,7 @@ mod tests {
     #[test]
     fn Floor_connect() {
         let mut floor = Floor::new(2, || 3);
+        floor.passages = HashSet::new(); // clear out existing passages
         floor.connect(CellLocation::N, CellLocation::NW);
         floor.connect(CellLocation::SE, CellLocation::S);
         assert_eq!(floor.passages.len(), 2);
