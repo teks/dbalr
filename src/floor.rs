@@ -200,11 +200,13 @@ impl Floor {
     /// Randomly connect all nine cells.
     /// Unsure how to write this method without adding Clone and Copy to CellLocation.
     fn random_passage_graph(&mut self) {
+        // println!("RPG starting");
         // TODO test this method - 1) extract randomness? then 2) write some tests somehow
         let mut graph: HashSet<CellLocation> = HashSet::new();
         // prime the pump by considering a random cell to be in the graph
         let mut all_cells = Vec::from(CellLocation::all());
         let cell_count = all_cells.len();
+        // TODO random input
         let mut current_cell = all_cells.remove(rand::random_range(0..cell_count));
         graph.insert(current_cell);
 
@@ -213,8 +215,10 @@ impl Floor {
             // get all the neighbors that are not in the graph, and then randomly select one of them
             let neighbor_iter = current_cell.neighbors().into_iter();
             // TODO what does rand::rng() actually do?
+            // TODO random input
             match neighbor_iter.filter(|cell| !graph.contains(cell)).choose(&mut rand::rng()) {
                 Some(destination) => {
+                    // println!("RPG Connecting {:?}, graph len = {}", (current_cell, destination), graph.len());
                     self.connect(current_cell, destination);
                     graph.insert(destination);
                     current_cell = destination; // walk around adding things to the graph as we go
@@ -223,7 +227,9 @@ impl Floor {
                     // if all the neighbors are in the graph already, already, pick a new current_cell and continue
                     // (graph is garaunteed to be non-empty) -------------vvvvvvvv
                     // TODO what does rand::rng() actually do?
+                    // TODO random input
                     current_cell = *graph.iter().choose(&mut rand::rng()).unwrap();
+                    // println!("RPG Dead end reached; starting over at {:?}", current_cell);
                 },
             }
         }
@@ -241,6 +247,12 @@ impl Floor {
         //     3. connect the two cells
     }
 
+    /// Make a new floor, minimal and unspecified.
+    fn new_blank() -> Floor {
+        Floor { level: 0, cells: HashMap::new(), passages: HashSet::new(), }
+    }
+
+    /// Make a new floor, fully formed with randomized rooms and passages
     fn new(level: u8, empty_cell_count_d4: DieRoller) -> Floor {
         let mut cells: HashMap<CellLocation, Cell> = HashMap::new();
         let mut candidate_locations = Vec::from(CellLocation::all());
@@ -382,5 +394,12 @@ mod tests {
     fn Floor_connect_nonadjacent_panic() {
         let mut floor = Floor::new(2, || 3);
         floor.connect(CellLocation::E, CellLocation::W);
+    }
+
+    /// ensure randomly-generated passages fully connect all 9 cells
+    #[test]
+    fn Floor_random_passage_graph_should_connect_all_cells() {
+        let mut floor = Floor::new_blank();
+        floor.random_passage_graph();
     }
 }
