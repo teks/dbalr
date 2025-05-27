@@ -33,7 +33,9 @@ non-maze rooms have minimum size about 4x4, max size is near the cell size
 #![allow(unused_imports)]
 
 use rand::seq::IteratorRandom;
-use rand::Rng;
+
+// basically out of the book https://rust-random.github.io/book/quick-start.html
+use rand::{Rng, SeedableRng, rngs};
 
 use std::collections::HashSet;
 use std::collections::HashMap;
@@ -201,9 +203,7 @@ impl Floor {
 
     /// Randomly connect all nine cells.
     /// Unsure how to write this method without adding Clone and Copy to CellLocation.
-    fn random_passage_graph(&mut self) {
-        // TODO what does rand::rng() actually do?
-        let mut rng = rand::rng(); // all randomness in this method is given by this RNG
+    fn random_passage_graph<T: Rng>(&mut self, mut rng: T) {
         // println!("RPG starting");
         // TODO test this method - 1) extract randomness? then 2) write some tests somehow
         let mut graph: HashSet<CellLocation> = HashSet::new();
@@ -237,7 +237,7 @@ impl Floor {
 
     /// Passage Generation - passages.c::do_passages()
     fn do_passages(&mut self) {
-        self.random_passage_graph();
+        self.random_passage_graph(rand::rng());
 
         // ============== TODO here down ===============
         // TODO split the two halves of this method into 2 methods?
@@ -400,7 +400,8 @@ mod tests {
     #[test]
     fn Floor_random_passage_graph_should_connect_all_cells() {
         let mut floor = Floor::new_blank();
-        floor.random_passage_graph();
+        let rng = rngs::StdRng::seed_from_u64(10);
+        floor.random_passage_graph(rng);
         let len = floor.passages.len();
         assert_eq!(len, 8);
     }
